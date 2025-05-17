@@ -35,21 +35,8 @@ def search_timezones_by_keyword(keyword):
 
 @app.route('/')
 def timezone():
-    city = request.args.get('city', '').strip()
-    village = request.args.get('village', '').strip()
-    country_name = request.args.get('country', '').strip()
-
-    if city:
-        results = search_timezones_by_keyword(city)
-        if not results:
-            return jsonify({"status": "error", "message": f"No timezones found matching city '{city}'"}), 404
-        return jsonify({"status": "success", "query_type": "city", "query": city, "cities": results})
-
-    if village:
-        results = search_timezones_by_keyword(village)
-        if not results:
-            return jsonify({"status": "error", "message": f"No timezones found matching village '{village}'"}), 404
-        return jsonify({"status": "success", "query_type": "village", "query": village, "cities": results})
+    args = request.args
+    country_name = args.get('country', '').strip()
 
     if country_name:
         try:
@@ -83,7 +70,17 @@ def timezone():
                 })
         return jsonify({"status": "success", "query_type": "country", "query": country_name, "cities": city_times})
 
-    return jsonify({"status": "error", "message": "Provide at least one query parameter: country, city, or village"}), 400
+    # For any other param except 'country', take the first one found and search in all timezones
+    # ignoring empty values
+    for key in args:
+        if key != 'country' and args.get(key).strip():
+            keyword = args.get(key).strip()
+            results = search_timezones_by_keyword(keyword)
+            if not results:
+                return jsonify({"status": "error", "message": f"No timezones found matching {key} '{keyword}'"}), 404
+            return jsonify({"status": "success", "query_type": key, "query": keyword, "cities": results})
+
+    return jsonify({"status": "error", "message": "Provide at least one query parameter: country, city, state, village, etc."}), 400
 
 if __name__ == '__main__':
     app.run()
