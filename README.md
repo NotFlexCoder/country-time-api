@@ -106,4 +106,4 @@ curl "http://127.0.0.1:5000/?country=India"
 
 ## 📝 License
 
-This project is licensed under the MIT License – see the [LICENSE](https://github.com/NotFlexCoder/timezone-api/blob/main/LICENSE) file for details.
+This project is licensed under the MIT License – see the [LICENSE](https://github.com/NotFlexCoder/country-time-api/blob/main/LICENSE) file for details.
