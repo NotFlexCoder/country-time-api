@@ -37,18 +37,15 @@ def search_timezones_by_keyword(keyword):
 def timezone():
     args = request.args
     country_name = args.get('country', '').strip()
-
     if country_name:
         try:
             country = pycountry.countries.lookup(country_name)
         except LookupError:
             return jsonify({"status": "error", "message": "Invalid country name"}), 400
-
         country_code = country.alpha_2
         timezones = pytz.country_timezones.get(country_code)
         if not timezones:
             return jsonify({"status": "error", "message": "No timezones found for this country"}), 404
-
         city_times = []
         for tz_name in timezones:
             try:
@@ -70,17 +67,31 @@ def timezone():
                 })
         return jsonify({"status": "success", "query_type": "country", "query": country_name, "cities": city_times})
 
-    # For any other param except 'country', take the first one found and search in all timezones
-    # ignoring empty values
-    for key in args:
-        if key != 'country' and args.get(key).strip():
-            keyword = args.get(key).strip()
-            results = search_timezones_by_keyword(keyword)
-            if not results:
-                return jsonify({"status": "error", "message": f"No timezones found matching {key} '{keyword}'"}), 404
-            return jsonify({"status": "success", "query_type": key, "query": keyword, "cities": results})
+    keywords = {k: v.strip() for k, v in args.items() if k != 'country' and v.strip()}
+    if not keywords:
+        return jsonify({"status": "error", "message": "Provide at least one query parameter: country, city, state, village, etc."}), 400
 
-    return jsonify({"status": "error", "message": "Provide at least one query parameter: country, city, state, village, etc."}), 400
+    results = []
+    for key, val in keywords.items():
+        found = search_timezones_by_keyword(val)
+        if found:
+            results.extend(found)
+
+    if not results:
+        first_key = list(keywords.keys())[0]
+        return jsonify({"status": "error", "message": f"No timezones found matching {first_key}"}), 404
+
+    # remove duplicates by city name
+    seen = set()
+    unique_results = []
+    for r in results:
+        if r["city"].lower() not in seen:
+            seen.add(r["city"].lower())
+            unique_results.append(r)
+
+    first_key = list(keywords.keys())[0]
+    first_val = keywords[first_key]
+    return jsonify({"status": "success", "query_type": first_key, "query": first_val, "cities": unique_results})
 
 if __name__ == '__main__':
     app.run()
