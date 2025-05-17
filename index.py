@@ -11,7 +11,7 @@ def get_time_formats(tz):
     time_12 = now.strftime('%I:%M:%S %p')
     return time_24, time_12
 
-@app.route('/api/timezone')
+@app.route('/')
 def timezone():
     country_name = request.args.get('country', '').strip()
     if not country_name:
